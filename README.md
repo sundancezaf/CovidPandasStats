@@ -2,9 +2,8 @@
 
 This is the Pandas Version of a final project. Project ongoing.
 
-The overall goal of this project is to get relevant information of cases and/or deaths in individual states within the US. This program includes: dates of first cases, number of days between first case to the first death, number of new cases between dates, total events for the state, number of events per capita, states with the maximum days between first case and first death, states with the minimum days between first case and first death, events on a particular date, total number of US events, states with most events per capita, states with fewest events per capita, and the date of the first event for the specified state. 
-
-The Pandas Version of the original project is designed to minimize lines of code and present data in a cleaner version.
+The overall goal of this project is to get relevant information of cases and/or deaths in individual states within the US. There are different functions that examine events between dates, total of new cases for specified dates, events per capita, etc.
+This version is designed to minimize lines of code and present data in a cleaner way.
 
 When the program is run as is, it creates individual DataFrames for the states with the day-to-day changes in case numbers.
 
