@@ -13,7 +13,7 @@ states = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 
           'West Virginia', 'Wisconsin', 'Wyoming']
 
 
-# We will need to make a couple of dictionaries or lists that make other lists and dictionaries with the
+# We will need to make a couple of dictionaries or lists inside lists and dictionaries with the
 # corresponding state name
 dictList = {key:{} for key in states}
 # These lists will be used to create individual DataFrames for the states
@@ -89,8 +89,16 @@ def caseChanges(state):
     # Will be used for indexing
     i = 1
 
+    # this gets the population for the state
+    population = popDF.loc[state, 'population']
+
+    # To find the cases per Capita we need to divide the population by 100K
+    perHundred = population / 100000
+
+    # This resets the index
     stateDF.reset_index(inplace=True)
 
+    # This finds the last index number for the state DF
     otherLastIndex = stateDF.index[-1]
 
     for item in range(otherLastIndex, 0, -1):
@@ -100,8 +108,11 @@ def caseChanges(state):
         # Date that corresponds to the last index
         lastDate = stateDF.loc[lastIndex, 'date']
 
-        # Number of casese that correspond to the last date
+        # Number of cases that correspond to the last date
         lastDateCases = stateDF.loc[lastIndex, 'cases']
+
+        # Cases per capita for last date
+        lastDatePerCapita = lastDateCases / perHundred
 
         # Date for the day before
         dayBefore = stateDF.loc[lastIndex - 1, 'date']
@@ -109,14 +120,29 @@ def caseChanges(state):
         # The cases for the day before the last index
         previousDayCases = stateDF.loc[(lastIndex - 1), 'cases']
 
+        # Previous day cases per capita
+        previousDayPerCapita = previousDayCases / perHundred
+
         # Change between the previous day cases and the last date cases
         difference = lastDateCases - previousDayCases
         dateString = str(dayBefore) + ' to ' + str(lastDate)
 
-        # Add to the list that will be transformed into a DataFrame
-        casesList[state].append([dayBefore, previousDayCases, lastDate, lastDateCases, dateString, difference])
+        # Add to the list that will be transformed into a new DataFrame
+        casesList[state].append([lastDate, lastDateCases, lastDatePerCapita, difference])
         # casesList[state].append(dayBefore)
         i += 1
     casesList[state].reverse()
 
     return difference
+
+for name in states:
+    caseChanges(name)
+
+# This creates the states DataFrames using the following column names: 'Date','Total Cases','per Capita', 'Daily Change'
+for stateName in states:
+    stateDataF[stateName]=pd.DataFrame(casesList[stateName],columns=['Date','Total Cases','per Capita','Daily Change'])
+
+
+# To access the newly created DataFrames do as follows:
+stateDataF['Texas']
+
