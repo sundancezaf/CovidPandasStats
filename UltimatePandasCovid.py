@@ -1,8 +1,21 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 from datetime import *
+
+# The following line is to show inline graphs in jupyter so disregard if not on a jupyter notebook uncomment if needed
+
+# %matplotlib inline 
+
+# These options are for jupyter notebook to show max rows, columns as specified
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
 
 # read the file
 df = pd.read_csv('us-states.csv')
+
+# This csv contains the population numbers for the states
+popDF = pd.read_csv('population.csv', index_col='state')
 
 states = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
           'District of Columbia', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas',
@@ -12,26 +25,27 @@ states = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 
           'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
           'West Virginia', 'Wisconsin', 'Wyoming']
 
-
-# We will need to make a couple of dictionaries or lists inside lists and dictionaries with the
-# corresponding state name
+# This creates separate dictionaries 
 dictList = {key:{} for key in states}
 # These lists will be used to create individual DataFrames for the states
 casesList = {key: [] for key in states}
 # These dictionaries are for the actual DataFrames
-stateDataF = {key:{} for key in states}
+stateDataFrame = {key:{} for key in states}
 
+# Need to assign a dictionary to the states
+for state in states:
+    # This filters out the values in the data by state
+    stateFilter = (df['state']==state)  
+    # This creates a dictionary from the filtered results 
+    dictList[state]= df[stateFilter]
+    # This will reset the index in case it's messed up
+    dictList[state].reset_index(inplace=True)
 
+# This function transforms a date to a Python date
 def changeDate(aDate):
     aDate = datetime.strptime(aDate, '%Y-%m-%d')
     finalDate = aDate.date()
     return finalDate
-
-# Need to assign a dictionary to the states
-for state in states:
-    stateFilter = (df['state']==state)
-    dictList[state]= df[stateFilter]
-    dictList[state].reset_index(inplace=True)
 
 # This function returns the date of the first reported case
 def getFirstEvent(name):
@@ -75,64 +89,79 @@ def casesBetweenDates(state,firstDate,secondDate):
     secondResults = int(secondResults)
     difference = secondResults - firstResults
     return difference
-
-# To be used later
+   
+# 
 def previousDate(date):
     date = changeDate(date)
     dateBefore = date - timedelta(days=1)
     return dateBefore
 
+# This function returns the population for the state
+def eventsPerCapita(name):
+    stateyDF = dictList[name]
+    population = popDF.loc[name,'population']
+    # last index to get the total number of cases
+    lastIndex =  stateyDF.index[-1]
+    totalEvents = stateyDF.loc[lastIndex,'cases']
+    # instead of multiplying by 100K at the end, divide pop by 100K and then divide total events
+    # by the result
+    perHundred = population / 100000
+    difference = totalEvents/perHundred
+    return difference
+
 # This function returns a DataFrame that shows the number of new cases for
 def caseChanges(state):
+    
     # make it easier to access
     stateDF = dictList[state]
     # Will be used for indexing
     i = 1
-
+    
     # this gets the population for the state
-    population = popDF.loc[state, 'population']
-
+    population = popDF.loc[state,'population']
+    
     # To find the cases per Capita we need to divide the population by 100K
-    perHundred = population / 100000
-
+    perHundred = population/100000
+    
     # This resets the index
     stateDF.reset_index(inplace=True)
-
+    
     # This finds the last index number for the state DF
     otherLastIndex = stateDF.index[-1]
-
-    for item in range(otherLastIndex, 0, -1):
+    
+    for item in range(otherLastIndex,0,-1):
+        
         # The last index
         lastIndex = stateDF.index[-i]
-
+        
         # Date that corresponds to the last index
-        lastDate = stateDF.loc[lastIndex, 'date']
-
+        lastDate = stateDF.loc[lastIndex,'date']
+        
         # Number of cases that correspond to the last date
-        lastDateCases = stateDF.loc[lastIndex, 'cases']
-
+        lastDateCases = stateDF.loc[lastIndex,'cases']
+        
         # Cases per capita for last date
-        lastDatePerCapita = lastDateCases / perHundred
-
+        lastDatePerCapita = lastDateCases/perHundred
+        
         # Date for the day before
-        dayBefore = stateDF.loc[lastIndex - 1, 'date']
-
-        # The cases for the day before the last index
-        previousDayCases = stateDF.loc[(lastIndex - 1), 'cases']
-
+        dayBefore = stateDF.loc[lastIndex-1,'date']
+        
+         # The cases for the day before the last index
+        previousDayCases = stateDF.loc[(lastIndex-1),'cases']
+        
         # Previous day cases per capita
-        previousDayPerCapita = previousDayCases / perHundred
-
+        previousDayPerCapita = previousDayCases/perHundred
+        
         # Change between the previous day cases and the last date cases
         difference = lastDateCases - previousDayCases
-        dateString = str(dayBefore) + ' to ' + str(lastDate)
-
+        dateString = str(dayBefore) + ' to ' + str(lastDate)        
+        
         # Add to the list that will be transformed into a new DataFrame
-        casesList[state].append([lastDate, lastDateCases, lastDatePerCapita, difference])
-        # casesList[state].append(dayBefore)
-        i += 1
+        casesList[state].append([lastDate,lastDateCases,lastDatePerCapita,difference])
+        #casesList[state].append(dayBefore)
+        i+=1
     casesList[state].reverse()
-
+     
     return difference
 
 for name in states:
@@ -140,9 +169,42 @@ for name in states:
 
 # This creates the states DataFrames using the following column names: 'Date','Total Cases','per Capita', 'Daily Change'
 for stateName in states:
-    stateDataF[stateName]=pd.DataFrame(casesList[stateName],columns=['Date','Total Cases','per Capita','Daily Change'])
+    stateDataFrame[stateName]=pd.DataFrame(casesList[stateName],columns=['Date','Total Cases','per Capita','Daily Change'])
 
 
 # To access the newly created DataFrames do as follows:
-stateDataF['Texas']
+print(stateDataFrame['Texas'])
 
+# This function finds the sum of the new cases for the specified days for the specified state
+# Ex. If you want to find out the new cases in the last 5 days for California
+# you can do so as: print(lastCoupleDays("California",5))
+def lastCoupleDays(state, days):
+    daysList = []
+    daysDF = stateDataF[state]
+    i = 1
+    lastIndex = daysDF.index[-1]
+    totalDays = lastIndex - days
+    # 
+    for numba in range(lastIndex,totalDays,-1):
+        findIndex = daysDF.index[-i]
+        allCases = daysDF.loc[findIndex,'Daily Change']
+        daysList.append(allCases)
+        i+=1
+    totalNumber = sum(daysList)
+    return totalNumbe
+
+
+# This function gives the total number of cases in the United States
+def totalCasesUS():
+    totalCasesList =  []
+    for aState in states:
+        lastIndex = stateDataF[aState].index[-1]
+        totalCases = stateDataF[aState].loc[lastIndex, 'Total Cases']
+        totalCasesList.append(totalCases)
+    total = sum(totalCasesList)
+    return total
+
+# The following comman is if you are using a Jupyter Notebook, you can use the following format to look at graphs
+# uncomment to use
+
+#stateDataFrame['New Hampshire'].plot(x='Date', y='Daily Change', kind='line')
